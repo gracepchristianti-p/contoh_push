@@ -1,15 +1,13 @@
 #include <iostream>
-#include <vector>
 #include <queue>
+#include <vector>
 #include <iomanip>
 using namespace std;
 
 struct Process {
     string name;
-    int at, bt, qt;
-    int ct, tat, wt, rt;
-    int queue;      // 1 = RR, 2 = FCFS
-    int remaining;
+    int at, bt, rem, ct, tat, wt, rt;
+    int qlevel;
     bool started = false;
 };
 
@@ -18,132 +16,146 @@ int main() {
     cout << "Jumlah proses: ";
     cin >> n;
 
-    vector<Process> p(n);
+    int quantum;
+    cout << "Masukkan quantum Round Robin: ";
+    cin >> quantum;
 
+    vector<Process> p(n);
     for (int i = 0; i < n; i++) {
-        cout << "Proses " << i + 1 << " (Name AT BT Queue): ";
-        cin >> p[i].name >> p[i].at >> p[i].bt >> p[i].queue;
-        p[i].remaining = p[i].bt;
+        cout << "\nNama proses : ";
+        cin >> p[i].name;
+        cout << "Arrival Time : ";
+        cin >> p[i].at;
+        cout << "Burst Time : ";
+        cin >> p[i].bt;
+        p[i].rem = p[i].bt;
+        cout << "Queue (1=RR,2=FCFS): ";
+        cin >> p[i].qlevel;
         p[i].rt = -1;
     }
 
-    queue<int> q1, q2;
-    int time = 0, done = 0;
-    int quantum = 2;
+    queue<int> q1; // Round Robin
+    queue<int> q2; // FCFS
+    int time = 0;
+    int done = 0;
+
     vector<string> gantt;
+    vector<int> ganttStart;
 
     while (done < n) {
 
-        // masuk proses yang datang
+        // Masukkan proses yang datang pada waktu saat ini
         for (int i = 0; i < n; i++) {
             if (p[i].at == time) {
-                if (p[i].queue == 1) q1.push(i);
+                if (p[i].qlevel == 1) q1.push(i);
                 else q2.push(i);
             }
         }
 
-        int cur = -1;
-        int level = 0;
+        int current = -1;
+        int slot = 0;
 
-        // Prioritas ke Queue 1 (Round Robin)
+        // Queue 1 (RR)
         if (!q1.empty()) {
-            cur = q1.front();
+            current = q1.front();
             q1.pop();
-            level = 1;
+            slot = min(quantum, p[current].rem);
         }
-        // Jika Q1 kosong, jalankan Q2 (FCFS)
+        // Queue 2 (FCFS)
         else if (!q2.empty()) {
-            cur = q2.front();
+            current = q2.front();
             q2.pop();
-            level = 2;
+            slot = p[current].rem;
         }
-
-        // CPU idle
-        if (cur == -1) {
-            gantt.push_back("Idle");
-            time++;
+        else {
+            time++; // idle
             continue;
         }
 
-        // response time
-        if (!p[cur].started) {
-            p[cur].started = true;
-            p[cur].rt = time - p[cur].at;
-        }
+        // Gantt Chart
+        gantt.push_back(p[current].name + "(Q" + to_string(p[current].qlevel) + ")");
+        ganttStart.push_back(time);
 
-        // Eksekusi proses
-        int slice = (level == 1 ? quantum : p[cur].remaining);
+        // Eksekusi
+        for (int t = 0; t < slot; t++) {
+            if (p[current].rt == -1)
+                p[current].rt = time - p[current].at;
 
-        for (int t = 0; t < slice; t++) {
-            if (p[cur].remaining > 0) {
-                gantt.push_back(p[cur].name + "(Q" + to_string(level) + ")");
-                p[cur].remaining--;
-                time++;
+            p[current].rem--;
+            time++;
 
-                // masukkan proses lain yang datang selama eksekusi
-                for (int i = 0; i < n; i++) {
-                    if (p[i].at == time) {
-                        if (p[i].queue == 1) q1.push(i);
-                        else q2.push(i);
-                    }
+            // Cek proses baru datang
+            for (int i = 0; i < n; i++) {
+                if (p[i].at == time) {
+                    if (p[i].qlevel == 1) q1.push(i);
+                    else q2.push(i);
                 }
             }
-            if (p[cur].remaining == 0) break;
+
+            if (p[current].rem == 0) break;
         }
 
-        // Jika selesai, hitung CT
-        if (p[cur].remaining == 0) {
-            p[cur].ct = time;
+        if (p[current].rem == 0) {
+            p[current].ct = time;
+            p[current].tat = p[current].ct - p[current].at;
+            p[current].wt = p[current].tat - p[current].bt;
             done++;
         }
         else {
-            // Masukkan kembali ke queue sesuai kelas
-            if (level == 1) q1.push(cur);
-            else q2.push(cur);
+            if (p[current].qlevel == 1) q1.push(current);
+            else q2.push(current);
         }
     }
 
-    // Hitung TAT, WT
-    for (int i = 0; i < n; i++) {
-        p[i].tat = p[i].ct - p[i].at;
-        p[i].wt = p[i].tat - p[i].bt;
+    // ==================== OUTPUT =====================
+
+    cout << "\nQuantum yang digunakan (RR): " << quantum << "\n"; // <-- tambahan
+
+    cout << "\n\n=== GANTT CHART (MLQ) ===\n";
+    for (int i = 0; i < gantt.size(); i++) {
+        cout << "[" << ganttStart[i] << "]--" << gantt[i] << "--";
     }
+    cout << "[" << time << "]\n";
 
-    // Tampilkan Gantt Chart
-    cout << "\n=== GANTT CHART ===\n";
-    for (int i = 0; i < gantt.size(); i++)
-        cout << setw(5) << gantt[i];
-    cout << endl;
-
-    // Tabel Hasil
     cout << "\n=== TABEL HASIL ===\n";
-    cout << "Name  AT  BT  Q  CT  TAT  WT  RT\n";
-    for (auto &x : p) {
-        cout << setw(4) << x.name
-             << setw(4) << x.at
-             << setw(4) << x.bt
-             << setw(4) << x.queue
-             << setw(4) << x.ct
-             << setw(5) << x.tat
-             << setw(5) << x.wt
-             << setw(5) << x.rt << endl;
-    }
+    cout << left << setw(10) << "Proses"
+        << setw(10) << "AT"
+        << setw(10) << "BT"
+        << setw(10) << "Q"
+        << setw(10) << "CT"
+        << setw(10) << "TAT"
+        << setw(10) << "WT"
+        << setw(10) << "RT"
+        << "\n";
 
-    // Rata-rata per queue
-    double tat1=0, tat2=0, wt1=0, wt2=0;
-    int c1=0, c2=0;
+    double avgWT1=0, avgTAT1=0, count1=0;
+    double avgWT2=0, avgTAT2=0, count2=0;
 
     for (auto &x : p) {
-        if (x.queue == 1) {
-            tat1 += x.tat; wt1 += x.wt; c1++;
+        cout << left << setw(10) << x.name
+            << setw(10) << x.at
+            << setw(10) << x.bt
+            << setw(10) << x.qlevel
+            << setw(10) << x.ct
+            << setw(10) << x.tat
+            << setw(10) << x.wt
+            << setw(10) << x.rt
+            << "\n";
+
+        if (x.qlevel == 1) {
+            avgWT1 += x.wt; avgTAT1 += x.tat; count1++;
         } else {
-            tat2 += x.tat; wt2 += x.wt; c2++;
+            avgWT2 += x.wt; avgTAT2 += x.tat; count2++;
         }
     }
 
     cout << "\n=== RATA-RATA PER QUEUE ===\n";
-    cout << "Queue 1 (RR):  WT=" << wt1/c1 << "   TAT=" << tat1/c1 << endl;
-    cout << "Queue 2 (FCFS): WT=" << wt2/c2 << "   TAT=" << tat2/c2 << endl;
+    if (count1 > 0)
+        cout << "Queue 1 (RR): Avg WT = " << avgWT1/count1
+            << ", Avg TAT = " << avgTAT1/count1 << "\n";
+    if (count2 > 0)
+        cout << "Queue 2 (FCFS): Avg WT = " << avgWT2/count2
+            << ", Avg TAT = " << avgTAT2/count2 << "\n";
 
     return 0;
 }

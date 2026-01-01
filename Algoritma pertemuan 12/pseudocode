@@ -1,0 +1,91 @@
+DEKLARASI
+    Struct MataKuliah
+        kode : string
+        nama : string
+        sks  : integer
+        dosen: string
+    EndStruct
+
+    mk[100] : array of MataKuliah
+    jumlah  : integer ← 0
+    pilihan : integer
+
+ALGORITMA
+    Ulangi
+        Tampilkan menu:
+            1. Tambah Data
+            2. Lihat Data
+            3. Ubah Data
+            4. Hapus Data
+            5. Cari Data (Get By ID)
+            6. Keluar
+
+        Input pilihan
+
+        Jika pilihan = 1 maka
+            Input kode, nama, sks, dosen
+            Simpan ke mk[jumlah]
+            jumlah ← jumlah + 1
+            Tampilkan "Data berhasil ditambahkan"
+
+        Jika pilihan = 2 maka
+            Jika jumlah = 0 maka
+                Tampilkan "Data masih kosong"
+            Jika tidak
+                Untuk i ← 0 sampai jumlah-1
+                    Tampilkan data mk[i]
+                EndFor
+            EndIf
+
+        Jika pilihan = 3 maka
+            Input kode yang dicari
+            ketemu ← false
+            Untuk i ← 0 sampai jumlah-1
+                Jika mk[i].kode = kode yang dicari maka
+                    Input nama baru, sks baru, dosen baru
+                    Update mk[i]
+                    ketemu ← true
+                    Keluar dari loop
+                EndIf
+            EndFor
+            Jika ketemu = false maka
+                Tampilkan "Data tidak ditemukan"
+            EndIf
+
+        Jika pilihan = 4 maka
+            Input kode yang dicari
+            ketemu ← false
+            Untuk i ← 0 sampai jumlah-1
+                Jika mk[i].kode = kode yang dicari maka
+                    Geser data dari indeks i sampai jumlah-1
+                    jumlah ← jumlah - 1
+                    ketemu ← true
+                    Keluar dari loop
+                EndIf
+            EndFor
+            Jika ketemu = false maka
+                Tampilkan "Data tidak ditemukan"
+            EndIf
+
+        Jika pilihan = 5 maka
+            Input kode yang dicari
+            ketemu ← false
+            Untuk i ← 0 sampai jumlah-1
+                Jika mk[i].kode = kode yang dicari maka
+                    Tampilkan data mk[i]
+                    ketemu ← true
+                    Keluar dari loop
+                EndIf
+            EndFor
+            Jika ketemu = false maka
+                Tampilkan "Data tidak ditemukan"
+            EndIf
+
+        Jika pilihan = 6 maka
+            Tampilkan "Program selesai"
+
+        Jika pilihan selain 1–6 maka
+            Tampilkan "Pilihan tidak valid"
+
+    Selama pilihan ≠ 6
+SELESAI
